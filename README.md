@@ -6,4 +6,3 @@ Compile:
 ```bash
 ./compile.sh
 ```
-```
