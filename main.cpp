@@ -1,11 +1,11 @@
 
 #include <bitset>
-#include <cassert>
 #include <iostream>
+#include <limits>
 #include <ostream>
 #include <stdexcept>
 #include <string>
-#include <ctime>
+#include <utility>
 
 using namespace std;
 
@@ -13,6 +13,21 @@ unsigned short bits = 8;
 int number1 = -1;
 int number2 = -1;
 bool in_binary = true;
+
+int mask() {
+    return static_cast<int>((1u << bits) - 1);
+}
+
+int tests_failed = 0;
+
+void check(bool condition, const char* expression) {
+    if (!condition) {
+        ++tests_failed;
+        cerr << "  FAILED: " << expression << endl;
+    }
+}
+
+#define CHECK(expr) check((expr), #expr)
 
 string int_to_string_binary(int n, size_t width = bits) {
     constexpr size_t storage_bits = 64;
@@ -31,15 +46,17 @@ string int_to_string_binary(int n, size_t width = bits) {
 }
 
 void test_int_to_string_binary() {
-    clock_t start = clock();
-    assert(int_to_string_binary(0, 8) == "00000000");
-    assert(int_to_string_binary(2, 8) == "00000010");
-    assert(int_to_string_binary(61,8) == "00111101");
-    double seconds = double(clock() - start) / CLOCKS_PER_SEC;
-    cout << "test_string_number: 3 calls PASSED in " << seconds << " seconds" << endl;
+    CHECK(int_to_string_binary(0, 8) == "00000000");
+    CHECK(int_to_string_binary(2, 8) == "00000010");
+    CHECK(int_to_string_binary(61, 8) == "00111101");
+    CHECK(int_to_string_binary(255, 8) == "11111111");
+
+    bool thrown = false;
+    try { int_to_string_binary(1, 0); } catch (const invalid_argument&) { thrown = true; }
+    CHECK(thrown);
 }
 
-int __input_binary_number() {
+int input_binary_number() {
     string number;
     cin >> number;
 
@@ -60,13 +77,56 @@ int __input_binary_number() {
     return stoi(number, nullptr, 2);
 }
 
-int input_number(int n = 0) {
-    if (n == 0) {
-        cout << "Enter binary number: ";
-    } else {
-        cout << "Enter " << n << "th binary number: ";
+int input_number() {
+    cout << "Enter binary number: ";
+    return input_binary_number();
+}
+
+int input_decimal_number() {
+    string number;
+    cin >> number;
+
+    if (number.empty() || number.find_first_not_of("0123456789") != string::npos) {
+        throw invalid_argument(number + " is not a non-negative decimal number");
     }
-    return __input_binary_number();
+    if (number.size() > 10 || stoll(number) > mask()) {
+        throw out_of_range(number + " does not fit in " + to_string(bits) +
+                           " bits (0.." + to_string(mask()) + ")");
+    }
+    return stoi(number);
+}
+
+int input_menu_choice() {
+    int choice;
+    if (!(cin >> choice)) {
+        if (!cin.eof()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        }
+        return -1;
+    }
+    return choice;
+}
+
+void input_number_menu(int& target) {
+    cout << "    [1] in binary" << endl;
+    cout << "    [2] in decimal" << endl;
+    cout << "    [0] cancel" << endl;
+    cout << "> ";
+    switch (input_menu_choice()) {
+        case 1:
+            target = input_number();
+            break;
+        case 2:
+            cout << "Enter decimal number: ";
+            target = input_decimal_number();
+            break;
+        case 0:
+            break;
+        default:
+            cout << "Unknown menu option" << endl;
+            break;
+    }
 }
 
 int check_enter(bool number2_needed = true, int numberf = number1, int numbers = number2) {
@@ -82,12 +142,10 @@ int check_enter(bool number2_needed = true, int numberf = number1, int numbers =
 }
 
 void test_check_enter() {
-    clock_t start = clock();
-    assert(check_enter(true, -1, 1) == false);
-    assert(check_enter(false, 1, -1) == true);
-    assert(check_enter(true, -1, -1) == false);
-    double seconds = double(clock() - start) / CLOCKS_PER_SEC;
-    cout << "test_check_enter: 3 calls PASSED in " << seconds << " seconds" << endl;
+    CHECK(check_enter(true, -1, 1) == false);
+    CHECK(check_enter(false, 1, -1) == true);
+    CHECK(check_enter(true, -1, -1) == false);
+    CHECK(check_enter(true, 0, 0) == true);
 }
 
 string string_number(int a, bool in_binaryf = in_binary) {
@@ -98,30 +156,36 @@ string string_number(int a, bool in_binaryf = in_binary) {
     }
 }
 
-void test_string_binary() {
-    clock_t start = clock();
-    assert(string_number(5, true) == int_to_string_binary(5));
-    assert(string_number(10, false) == "10");
-    double seconds = double(clock() - start) / CLOCKS_PER_SEC;
-    cout << "test_string_binary: 2 calls PASSED in " << seconds << " seconds" << endl;
+void test_string_number() {
+    CHECK(string_number(5, true) == int_to_string_binary(5));
+    CHECK(string_number(10, false) == "10");
 }
 
 int main() {
     bool running = true;
     string bits_input;
 
-    cout << "Enter number of bits in numbers (press enter for 8)" << endl;
-    cout << "> ";
+    while (true) {
+        cout << "Enter number of bits in numbers, 1-31 (press enter for 8)" << endl;
+        cout << "> ";
+        getline(cin, bits_input);
 
-    getline(cin, bits_input);
-
-    if (!bits_input.empty()) {
-        bits = stoi(bits_input);
+        if (bits_input.empty()) {
+            break;
+        }
+        try {
+            size_t pos = 0;
+            int value = stoi(bits_input, &pos);
+            if (pos == bits_input.size() && value >= 1 && value <= 31) {
+                bits = static_cast<unsigned short>(value);
+                break;
+            }
+        } catch (const exception&) {
+        }
+        cerr << "Bit width must be a number from 1 to 31" << endl;
     }
 
     while (running) {
-        short n;
-
         cout << "\n[1] Run tests" << endl;
         cout << "[2] enter first number" << endl;
         cout << "[3] enter second number" << endl;
@@ -132,20 +196,20 @@ int main() {
         }
         cout << endl;
         cout << "[5] AND &" << endl;
-        cout << "[6] OR +" << endl;
-        cout << "[7] NOT ! ~" << endl;
+        cout << "[6] OR |" << endl;
+        cout << "[7] NOT ~" << endl;
         cout << "[8] XOR ^" << endl;
         cout << "[9] 10 base to 2 base" << endl;
         cout << "[10] 2 base to 10 base" << endl;
         cout << "[11] switch first and second number" << endl;
-        cout << "[12] shift to left" << endl;
-        cout << "[13] shift to right" << endl;
+        cout << "[12] shift to left <<" << endl;
+        cout << "[13] shift to right >>" << endl;
         cout << "[0] Exit" << endl;
         cout << "> ";
 
-        if (!(cin >> n)) {
-            cerr << "Invalid menu input" << endl;
-            return 1;
+        int n = input_menu_choice();
+        if (!cin) {
+            break;
         }
 
         try {
@@ -155,64 +219,20 @@ int main() {
                     break;
 
                 case 1:
+                    tests_failed = 0;
                     test_int_to_string_binary();
                     test_check_enter();
-                    test_string_binary();
+                    test_string_number();
+                    cout << (tests_failed == 0 ? "All tests PASSED" : "Some tests FAILED") << endl;
                     break;
 
-                case 2: {
-                    unsigned short choice;
-                    cout << "    [1] in binary" << endl;
-                    cout << "    [2] in decimal" << endl;
-                    cout << "    [3] cancel" << endl;
-                    cout << "> ";
-                    cin >> choice;
-                    switch (choice) {
-                        case 1: {
-                            number1 = input_number();
-                            break;
-                        }
-                        case 2: {
-                            cout << "Enter decimal number: ";
-                            cin >> number1;
-                            break;
-                        }
-
-                        case 3: {
-                            break;
-                        }
-
-                        default: cout << "Unknown menu option" << endl; break;
-                    }
+                case 2:
+                    input_number_menu(number1);
                     break;
-                }
 
-                case 3: {
-                    unsigned short choice;
-                    cout << "    [1] in binary" << endl;
-                    cout << "    [2] in decimal" << endl;
-                    cout << "    [0] cancel" << endl;
-                    cout << "> ";
-                    cin >> choice;
-                    switch (choice) {
-                        case 1: {
-                            number2 = input_number();
-                            break;
-                        }
-                        case 2: {
-                            cout << "Enter decimal number: ";
-                            cin >> number2;
-                            break;
-                        }
-
-                        case 0: {
-                            break;
-                        }
-
-                        default: cout << "Unknown menu option" << endl; break;
-                    }
+                case 3:
+                    input_number_menu(number2);
                     break;
-                }
 
                 case 4: {
                     in_binary = !in_binary;
@@ -260,7 +280,7 @@ int main() {
                     if (!check_enter(false)) {
                         break;
                     }
-                    int not_answ = ~number1;
+                    int not_answ = ~number1 & mask();
 
                     cout << "NOT "
                          << string_number(number1)
@@ -309,9 +329,7 @@ int main() {
                 }
 
                 case 11: {
-                    int temp1 = number1;
-                    number1 = number2;
-                    number2 = temp1;
+                    swap(number1, number2);
                     cout << "switched" << endl;
                     break;
                 }
@@ -320,6 +338,12 @@ int main() {
                     if (!check_enter(true)) {
                         break;
                     }
+
+                    if (number2 >= bits) {
+                        cout << "Shift amount must be less than " << bits << endl;
+                        break;
+                    }
+
                     int shift_answ = number1 << number2;
 
                     cout << string_number(number1)
@@ -335,6 +359,12 @@ int main() {
                     if (!check_enter(true)) {
                         break;
                     }
+
+                    if (number2 >= bits) {
+                        cout << "Shift amount must be less than " << bits << endl;
+                        break;
+                    }
+
                     int shift_answ = number1 >> number2;
                     cout << string_number(number1)
                          << " >> "
