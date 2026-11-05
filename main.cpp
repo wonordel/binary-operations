@@ -197,7 +197,7 @@ int main() {
         cout << "[12] shift to left <<" << endl;
         cout << "[13] shift to right >>" << endl;
         cout << "[14] plus +" << endl;
-        cout << "[15] minus" << endl;
+        cout << "[15] minus -" << endl;
         cout << "[0] Exit" << endl;
         cout << "> ";
 
@@ -389,10 +389,19 @@ int main() {
                     if (!check_enter(true)) break;
 
                     if (*number2 > *number1) {
-                        d 
+                        cout << "first number bigger then second" << endl;
+                        break;
                     }
+
+                    uint64_t minus_answ = *number1 - *number2;
+
+                    cout << string_number(*number1)
+                         << " - "
+                         << string_number(*number2)
+                         << " = "
+                         << string_number(minus_answ)
                 }
-                
+
                 default:
                     cout << "Unknown menu option" << endl;
                     break;
