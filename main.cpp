@@ -8,12 +8,11 @@
 #include <string>
 #include <utility>
 #include <cstdint>
-#include <limits>
 using namespace std;
 
 unsigned short bits = 8;
-optional<uint64_t> number1 = -1;
-optional<uint64_t> number2 = -1;
+optional<uint64_t> number1;
+optional<uint64_t> number2;
 bool in_binary = true;
 
 uint64_t mask() {
@@ -29,12 +28,12 @@ void check(bool condition, const char* expression) {
     if (!condition) {
         ++tests_failed;
         cerr << "  FAILED: " << expression << endl;
-    }f
+    }
 }
 
 #define CHECK(expr) check((expr), #expr)
 
-string int_to_string_binary(int n, size_t width = bits) {
+string int_to_string_binary(uint64_t n, size_t width = bits) {
     constexpr size_t storage_bits = 64;
 
     if (width == 0 || width > storage_bits) {
@@ -61,7 +60,7 @@ void test_int_to_string_binary() {
     CHECK(thrown);
 }
 
-int input_binary_number() {
+uint64_t input_binary_number() {
     string number;
     cin >> number;
 
@@ -76,23 +75,24 @@ int input_binary_number() {
     return stoull(number, nullptr, 2);
 }
 
-int input_number() {
+uint64_t input_number() {
     cout << "Enter binary number: ";
     return input_binary_number();
 }
 
-int input_decimal_number() {
+uint64_t input_decimal_number() {
     string number;
     cin >> number;
 
     if (number.empty() || number.find_first_not_of("0123456789") != string::npos) {
         throw invalid_argument(number + " is not a non-negative decimal number");
     }
-    if (number.size() > 10 || stoll(number) > mask()) {
+    uint64_t value = stoull(number);
+    if (value > mask()) {
         throw out_of_range(number + " does not fit in " + to_string(bits) +
                            " bits (0.." + to_string(mask()) + ")");
     }
-    return stoi(number);
+    return value;
 }
 
 int input_menu_choice() {
@@ -107,7 +107,7 @@ int input_menu_choice() {
     return choice;
 }
 
-void input_number_menu(int& target) {
+void input_number_menu(optional<uint64_t>& target) {
     cout << "    [1] in binary" << endl;
     cout << "    [2] in decimal" << endl;
     cout << "    [0] cancel" << endl;
@@ -140,7 +140,7 @@ int check_enter(bool number2_needed = true) {
     return true;
 }
 
-string string_number(int a, bool in_binaryf = in_binary) {
+string string_number(uint64_t a, bool in_binaryf = in_binary) {
     if (in_binaryf) {
         return int_to_string_binary(a);
     } else {
@@ -158,7 +158,7 @@ int main() {
     string bits_input;
 
     while (true) {
-        cout << "Enter number of bits in numbers, 1-31 (press enter for 8)" << endl;
+        cout << "Enter number of bits in numbers, 1-64 (press enter for 8)" << endl;
         cout << "> ";
         getline(cin, bits_input);
 
@@ -168,13 +168,13 @@ int main() {
         try {
             size_t pos = 0;
             int value = stoi(bits_input, &pos);
-            if (pos == bits_input.size() && value >= 1 && value <= 31) {
+            if (pos == bits_input.size() && value >= 1 && value <= 64) {
                 bits = static_cast<unsigned short>(value);
                 break;
             }
         } catch (const exception&) {
         }
-        cerr << "Bit width must be a number from 1 to 31" << endl;
+    cerr << "Bit width must be a number from 1 to 64" << endl;
     }
 
     while (running) {
@@ -241,11 +241,11 @@ int main() {
                     if (!check_enter(true)) {
                         break;
                     }
-                    int and_answ = number1 & number2;
+                    uint64_t and_answ = *number1 & *number2;
 
-                    cout << string_number(number1)
+                    cout << string_number(*number1)
                          << " AND "
-                         << string_number(number2)
+                         << string_number(*number2)
                          << " = "
                          << string_number(and_answ)
                          << endl;
@@ -256,11 +256,11 @@ int main() {
                     if (!check_enter(true)) {
                         break;
                     }
-                    int or_answ = number1 | number2;
+                    uint64_t or_answ = *number1 | *number2;
 
-                    cout << string_number(number1)
+                    cout << string_number(*number1)
                          << " OR "
-                         << string_number(number2)
+                         << string_number(*number2)
                          << " = "
                          << string_number(or_answ)
                          << endl;
@@ -271,10 +271,10 @@ int main() {
                     if (!check_enter(false)) {
                         break;
                     }
-                    int not_answ = ~number1 & mask();
+                    uint64_t not_answ = ~*number1 & mask();
 
                     cout << "NOT "
-                         << string_number(number1)
+                         << string_number(*number1)
                          << " = "
                          << string_number(not_answ)
                          << endl;
@@ -286,11 +286,11 @@ int main() {
                         break;
                     }
 
-                    int xor_answ = number1 ^ number2;
+                    uint64_t xor_answ = *number1 ^ *number2;
 
-                    cout << string_number(number1)
+                    cout << string_number(*number1)
                          << " XOR "
-                         << string_number(number2)
+                         << string_number(*number2)
                          << " = "
                          << string_number(xor_answ)
                          << endl;
@@ -298,20 +298,24 @@ int main() {
                 }
 
                 case 9: {
-                    int number;
+                    uint64_t number;
                     cout << "Enter number: ";
-                    cin >> number;
+                    if (!(cin >> number) || number > mask()) {
+                        cin.clear();
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                        throw invalid_argument("Number does not fit in selected bit width");
+                    }
                     cout << number
                          << "_10 = "
-                         << string_number(number)
+                         << int_to_string_binary(number)
                          << "_2"
                          << endl;
                     break;
                 }
 
                 case 10: {
-                    int number = input_number();
-                    cout << string_number(number)
+                    uint64_t number = input_number();
+                    cout << int_to_string_binary(number)
                          << "_2 = "
                          << number
                          << "_10"
@@ -330,16 +334,16 @@ int main() {
                         break;
                     }
 
-                    if (number2 >= bits) {
+                    if (*number2 >= bits) {
                         cout << "Shift amount must be less than " << bits << endl;
                         break;
                     }
 
-                    int shift_answ = number1 << number2;
+                    uint64_t shift_answ = (*number1 << *number2) & mask();
 
-                    cout << string_number(number1)
+                    cout << string_number(*number1)
                          << " << "
-                         << string_number(number2)
+                         << string_number(*number2)
                          << " = "
                          << string_number(shift_answ)
                          << endl;
@@ -351,15 +355,15 @@ int main() {
                         break;
                     }
 
-                    if (number2 >= bits) {
+                    if (*number2 >= bits) {
                         cout << "Shift amount must be less than " << bits << endl;
                         break;
                     }
 
-                    int shift_answ = number1 >> number2;
-                    cout << string_number(number1)
+                    uint64_t shift_answ = *number1 >> *number2;
+                    cout << string_number(*number1)
                          << " >> "
-                         << string_number(number2)
+                         << string_number(*number2)
                          << " = "
                          << string_number(shift_answ)
                          << endl;
