@@ -196,6 +196,8 @@ int main() {
         cout << "[11] switch first and second number" << endl;
         cout << "[12] shift to left <<" << endl;
         cout << "[13] shift to right >>" << endl;
+        cout << "[14] plus +" << endl;
+        cout << "[15] minus" << endl;
         cout << "[0] Exit" << endl;
         cout << "> ";
 
@@ -370,6 +372,27 @@ int main() {
                     break;
                 }
 
+                case 14: {
+                    if (!check_enter(true)) break;
+                    uint64_t plus_answ = *number1 + *number2;
+
+                    cout << string_number(*number1)
+                         << " + "
+                         << string_number(*number2)
+                         << " = "
+                         << string_number(plus_answ)
+                         << endl;
+                    break;
+                }
+
+                case 15: {
+                    if (!check_enter(true)) break;
+
+                    if (*number2 > *number1) {
+                        d 
+                    }
+                }
+                
                 default:
                     cout << "Unknown menu option" << endl;
                     break;

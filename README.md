@@ -6,3 +6,8 @@ Compile:
 ```bash
 ./compile.sh
 ```
+
+Or with debug:
+```bash
+./compile.sh debug
+```
