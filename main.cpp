@@ -374,7 +374,7 @@ int main() {
 
                 case 14: {
                     if (!check_enter(true)) break;
-                    uint64_t plus_answ = *number1 + *number2;
+                    uint64_t plus_answ = (*number1 + *number2) & mask();
 
                     cout << string_number(*number1)
                          << " + "
@@ -400,6 +400,8 @@ int main() {
                          << string_number(*number2)
                          << " = "
                          << string_number(minus_answ)
+                         << endl;
+                    break;
                 }
 
                 default:
