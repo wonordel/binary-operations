@@ -300,13 +300,8 @@ int main() {
                 }
 
                 case 9: {
-                    uint64_t number;
                     cout << "Enter number: ";
-                    if (!(cin >> number) || number > mask()) {
-                        cin.clear();
-                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-                        throw invalid_argument("Number does not fit in selected bit width");
-                    }
+                    uint64_t number = input_decimal_number();
                     cout << number
                          << "_10 = "
                          << int_to_string_binary(number)
@@ -389,7 +384,7 @@ int main() {
                     if (!check_enter(true)) break;
 
                     if (*number2 > *number1) {
-                        cout << "first number bigger then second" << endl;
+                        cout << "second number bigger then first" << endl;
                         break;
                     }
 
