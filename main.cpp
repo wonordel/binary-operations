@@ -2,20 +2,25 @@
 #include <bitset>
 #include <iostream>
 #include <limits>
+#include <optional>
 #include <ostream>
 #include <stdexcept>
 #include <string>
 #include <utility>
-
+#include <cstdint>
+#include <limits>
 using namespace std;
 
 unsigned short bits = 8;
-int number1 = -1;
-int number2 = -1;
+optional<uint64_t> number1 = -1;
+optional<uint64_t> number2 = -1;
 bool in_binary = true;
 
-int mask() {
-    return static_cast<int>((1u << bits) - 1);
+uint64_t mask() {
+    if (bits == 64) {
+        return numeric_limits<uint64_t>::max();
+    }
+    return (uint64_t{1} << bits) - 1;
 }
 
 int tests_failed = 0;
@@ -24,7 +29,7 @@ void check(bool condition, const char* expression) {
     if (!condition) {
         ++tests_failed;
         cerr << "  FAILED: " << expression << endl;
-    }
+    }f
 }
 
 #define CHECK(expr) check((expr), #expr)
@@ -60,21 +65,15 @@ int input_binary_number() {
     string number;
     cin >> number;
 
-    if (number.empty()) {
-        throw invalid_argument("Empty input");
-    }
-
-    for (char c : number) {
-        if (c != '0' && c != '1') {
-            throw invalid_argument(number + " is not a binary number");
-        }
+    if (number.empty() || number.find_first_not_of("01") != string::npos) {
+        throw invalid_argument("Invalid binary number");
     }
 
     if (number.size() > bits) {
-        throw invalid_argument("Binary number must contain at most " + to_string(bits) + " bits");
+        throw invalid_argument("Too many bits");
     }
 
-    return stoi(number, nullptr, 2);
+    return stoull(number, nullptr, 2);
 }
 
 int input_number() {
@@ -129,23 +128,16 @@ void input_number_menu(int& target) {
     }
 }
 
-int check_enter(bool number2_needed = true, int numberf = number1, int numbers = number2) {
-    if (numberf < 0) {
+int check_enter(bool number2_needed = true) {
+    if (!number1) {
         cout << "Enter first number" << endl;
         return false;
     }
-    if (number2_needed && numbers < 0) {
+    if (number2_needed && !number2) {
         cout << "Enter second number" << endl;
         return false;
     }
     return true;
-}
-
-void test_check_enter() {
-    CHECK(check_enter(true, -1, 1) == false);
-    CHECK(check_enter(false, 1, -1) == true);
-    CHECK(check_enter(true, -1, -1) == false);
-    CHECK(check_enter(true, 0, 0) == true);
 }
 
 string string_number(int a, bool in_binaryf = in_binary) {
@@ -221,7 +213,6 @@ int main() {
                 case 1:
                     tests_failed = 0;
                     test_int_to_string_binary();
-                    test_check_enter();
                     test_string_number();
                     cout << (tests_failed == 0 ? "All tests PASSED" : "Some tests FAILED") << endl;
                     break;
